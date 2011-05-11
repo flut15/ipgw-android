@@ -9,7 +9,7 @@
 <EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:numeric="integer" android:text="@string/empty" android:id="@+id/userid" android:inputType="number"></EditText>
 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/passwd_text" android:text="@string/passwd_text"></TextView>
 <EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:numeric="integer" android:id="@+id/password" android:text="@string/empty" android:password="true" android:inputType="textPassword"></EditText>
-<TextView android:id="@+id/textView1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/status"></TextView>
+<TextView android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/status"></TextView>
 <LinearLayout android:layout_height="wrap_content" android:layout_width="match_parent" android:id="@+id/linearLayout1" android:orientation="horizontal">
     <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/connect" android:text="@string/connect"></Button>
     <Button android:layout_width="wrap_content" android:id="@+id/connect_all" android:layout_height="wrap_content" android:text="@string/connect_all"></Button>
