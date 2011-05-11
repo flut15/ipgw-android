@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, ipgw!</string>
+    <string name="app_name">ipgw</string>
+    <string name="title">IPGW of PKU for Android</string>
+    <string name="userid_text">userid</string>
+    <string name="empty"></string>
+    <string name="passwd_text">password</string>
+    <string name="connect">connect</string>
+    <string name="connect_all">connect all</string>
+    <string name="disconnect">disconnect</string>
+    <string name="status">status : </string>
+</resources>

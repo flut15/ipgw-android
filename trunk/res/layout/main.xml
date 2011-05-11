@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+<TextView  
+    android:layout_width="fill_parent" 
+    android:layout_height="wrap_content" 
+    android:id="@+id/title" android:text="@string/title"/>
+<TextView android:id="@+id/userid_text" android:text="@string/userid_text" android:layout_height="wrap_content" android:layout_width="match_parent"></TextView>
+<EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:numeric="integer" android:text="@string/empty" android:id="@+id/userid" android:inputType="number"></EditText>
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/passwd_text" android:text="@string/passwd_text"></TextView>
+<EditText android:layout_width="fill_parent" android:layout_height="wrap_content" android:numeric="integer" android:id="@+id/password" android:text="@string/empty" android:password="true" android:inputType="textPassword"></EditText>
+<TextView android:id="@+id/textView1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/status"></TextView>
+<LinearLayout android:layout_height="wrap_content" android:layout_width="match_parent" android:id="@+id/linearLayout1" android:orientation="horizontal">
+    <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/connect" android:text="@string/connect"></Button>
+    <Button android:layout_width="wrap_content" android:id="@+id/connect_all" android:layout_height="wrap_content" android:text="@string/connect_all"></Button>
+    <Button android:layout_width="wrap_content" android:id="@+id/disconnect" android:layout_height="wrap_content" android:text="@string/disconnect"></Button>
+</LinearLayout>
+</LinearLayout>
