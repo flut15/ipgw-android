@@ -185,6 +185,7 @@ public class ipgw extends Activity {
     	}
     	return result;
     };
+    
     // https«Î«Û
     private String https_request() throws Exception{
     	
