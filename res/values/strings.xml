@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, ipgw!</string>
+    <string name="app_name">ipgw</string>
+    <string name="title">IPGW of PKU for Android</string>
+    <string name="userid_text">UserID:</string>
+    <string name="empty"></string>
+    <string name="passwd_text">Password:</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="status">status : </string>
+    <string name="range">\nIP Range:</string>
+    <string name="free">Cernet Free</string>
+    <string name="global">Global</string>
+    <string name="disconnect_all">Disconnect All</string>
+    <string name="keep_account">Keep account</string>
+    <string name="sign_automatically">Sign automatically</string>
+    <string name="unsigned">未登录</string>
+</resources>
