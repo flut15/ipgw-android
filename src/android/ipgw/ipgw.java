@@ -95,6 +95,8 @@ public class ipgw extends Activity {
         button_disconnect.setOnClickListener(listener_disconnect);
         button_exit.setOnClickListener(listener_exit);
         keep_account.setOnCheckedChangeListener(listener_keep_account);
+        save_password.setOnCheckedChangeListener(listener_keep_account);
+        sign_auto.setOnCheckedChangeListener(listener_keep_account);
         
         conf_file = new File("/sdcard/ipgw.conf");
         shadow_file = new File("/sdcard/ipgw.shadow");
