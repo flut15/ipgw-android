@@ -62,10 +62,8 @@ public class ipgw extends Activity {
     private Timer timer;
     private myTimerTask mytask;
     static final int HEART_BEAT_INTERVAL = 30000;
-    static final String HEARTBEAT_SERVER_1 = "162.105.129.27";
-    static final int HEARTBEAT_SERVER_PORT_1 = 7777;
-    static final String HEARTBEAT_SERVER_2 = "202.112.7.13";
-    static final int HEARTBEAT_SERVER_PORT_2 = 7777;
+    static final String[] HEARTBEAT_SERVER = {"162.105.129.27","202.112.7.13"};
+    static final int[] HEARTBEAT_SERVER_PORT = {7777,7777};
     
     
     /** Called when the activity is first created. */
@@ -265,7 +263,7 @@ public class ipgw extends Activity {
 		if (timer != null)
 			timer.cancel();
 		timer = new Timer();
-		//timer.schedule(mytask, 0, HEART_BEAT_INTERVAL);
+		timer.schedule(mytask, 0, HEART_BEAT_INTERVAL);
     	return result;
     };
     // 断开所有连接
@@ -316,40 +314,27 @@ public class ipgw extends Activity {
     private int send_heartbeat(){
 		String sendMessage = "r[android]";
 		String recvMessage;
-		byte[] recvBytes = new byte[1024];
-    	try{
-    		InetSocketAddress isa = new InetSocketAddress(HEARTBEAT_SERVER_1, HEARTBEAT_SERVER_PORT_1);
-    		DatagramPacket send_dp = new DatagramPacket(sendMessage.getBytes(), 0, sendMessage.length(), isa);
-    		DatagramPacket recv_dp = new DatagramPacket(recvBytes, 0, sendMessage.length(), isa);
-    		DatagramSocket ds = new DatagramSocket(isa);
-    		Log.i("heartbeat 1", "1");
-    		ds.bind(isa);
-    		Log.i("heartbeat 1", "2");
-    		ds.send(send_dp);
-    		Log.i("heartbeat 1", "3");
-    		ds.receive(recv_dp);
-    		Log.i("heartbeat 1", "4");
-    		recvMessage = new String(recvBytes);
-    		Log.i("heartbeat 1", recvMessage);
-    		return 0;
-    	}catch (Exception e){
-    		Log.e("heartbeat 1", e.getMessage());
+		int i;
+		for (i=0; i<HEARTBEAT_SERVER.length; i++){
+			try{
+    			InetAddress ia = InetAddress.getByName(HEARTBEAT_SERVER[i]);
+    			DatagramSocket socket = new DatagramSocket();
+    			socket.setSoTimeout(2000);
+    			DatagramPacket dp_send = new DatagramPacket(sendMessage.getBytes(),
+    					sendMessage.getBytes().length);
+    			socket.connect(ia, HEARTBEAT_SERVER_PORT[i]);
+    			DatagramPacket dp_recv = new DatagramPacket(new byte[1024], 1024);
+    			socket.send(dp_send);
+    			socket.receive(dp_recv);
+    			byte[] byte_recv = dp_recv.getData();
+    			recvMessage = new String(byte_recv).substring(0, dp_recv.getLength());
+    			Log.i("heartbeat "+i,"OK "+recvMessage);
+    			return 0;
+    		}catch (Exception e){
+    			Log.e("heartbeat "+i, e.getMessage());
+    		}
     	}
-    	try{
-    		InetSocketAddress isa = new InetSocketAddress(HEARTBEAT_SERVER_2, HEARTBEAT_SERVER_PORT_2);
-    		DatagramPacket send_dp = new DatagramPacket(sendMessage.getBytes(), 0, sendMessage.length(), isa);
-    		DatagramPacket recv_dp = new DatagramPacket(recvBytes, 0, sendMessage.length(), isa);
-    		DatagramSocket ds = new DatagramSocket();
-    		ds.bind(isa);
-    		ds.send(send_dp);
-    		ds.receive(recv_dp);
-    		recvMessage = new String(recvBytes);
-    		Log.i("heartbeat 1", recvMessage);
-    		return 0;
-    	}catch (Exception e){
-    		Log.e("heartbeat 2", e.getMessage());
-    		return 1;
-    	}
+    	return 1;
     }
     
     // https请求
