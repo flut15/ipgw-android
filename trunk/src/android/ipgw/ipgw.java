@@ -3,7 +3,18 @@ package android.ipgw;
 import android.ipgw.R;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -12,11 +23,14 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.RadioButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.*;
 import java.net.*;
 import java.security.SecureRandom;
 import java.security.cert.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -31,10 +45,11 @@ public class ipgw extends Activity {
     private TextView status;
     private TextView userid;
     private TextView passwd;
-    private TextView debug;
+    //private TextView debug;
     private RadioButton free;
     private RadioButton global;
     private CheckBox keep_account;
+    private CheckBox save_password;
     private CheckBox sign_auto;
     private File conf_file;
     private File shadow_file;
@@ -42,6 +57,16 @@ public class ipgw extends Activity {
     private String USER_ID = "";//用户名
     private String PASSWORD = "";//密码
     private String key = "qwertyui";
+    
+    // 心跳计时器
+    private Timer timer;
+    private myTimerTask mytask;
+    static final int HEART_BEAT_INTERVAL = 30000;
+    static final String HEARTBEAT_SERVER_1 = "162.105.129.27";
+    static final int HEARTBEAT_SERVER_PORT_1 = 7777;
+    static final String HEARTBEAT_SERVER_2 = "202.112.7.13";
+    static final int HEARTBEAT_SERVER_PORT_2 = 7777;
+    
     
     /** Called when the activity is first created. */
     @Override
@@ -53,22 +78,30 @@ public class ipgw extends Activity {
         Button button_connect = (Button)findViewById(R.id.connect);
         Button button_disconnect_all = (Button)findViewById(R.id.disconnect_all);
         Button button_disconnect = (Button)findViewById(R.id.disconnect);
+        Button button_exit = (Button)findViewById(R.id.exit);
+        
         status = (TextView)findViewById(R.id.status);
         userid = (TextView)findViewById(R.id.userid);
         passwd = (TextView)findViewById(R.id.password);
-        debug = (TextView)findViewById(R.id.debug);
+        //debug = (TextView)findViewById(R.id.debug);
         free = (RadioButton)findViewById(R.id.free);
         global = (RadioButton)findViewById(R.id.global);
         keep_account = (CheckBox)findViewById(R.id.keep_account);
+        save_password = (CheckBox)findViewById(R.id.save_password);
         sign_auto = (CheckBox)findViewById(R.id.sign_automatically);
         
         button_connect.setOnClickListener(listener_connect);
         button_disconnect_all.setOnClickListener(listener_disconnect_all);
         button_disconnect.setOnClickListener(listener_disconnect);
+        button_exit.setOnClickListener(listener_exit);
         keep_account.setOnCheckedChangeListener(listener_keep_account);
         
         conf_file = new File("/sdcard/ipgw.conf");
         shadow_file = new File("/sdcard/ipgw.shadow");
+        
+        mytask = new myTimerTask();
+        
+        // 载入配置文件和用户名密码
         try{
         	if (!shadow_file.exists()){
         		shadow_file.createNewFile();
@@ -76,7 +109,8 @@ public class ipgw extends Activity {
         	else
         		read_shadow();
         }catch (Exception e){
-        	debug.setText(debug.getText() + e.getMessage());
+        	//debug.setText(debug.getText() + e.getMessage());
+        	Log.e("read shadow", e.getMessage());
         }
         try{
         	if (!conf_file.exists()){
@@ -85,7 +119,8 @@ public class ipgw extends Activity {
         	else
         		read_conf();
         }catch (Exception e){
-        	debug.setText(debug.getText() + e.getMessage());
+        	//debug.setText(debug.getText() + e.getMessage());
+        	Log.e("read conf", e.getMessage());
         }
         
         // 自动连接
@@ -95,27 +130,65 @@ public class ipgw extends Activity {
         	status.setText(result);
         }
         
-        //System.out.print("Program Start.");
     }
+    
+    // 程序退出时的处理
     public void onDestroy() {
     	if (keep_account.isChecked() == true){
     		save_conf();
     		save_shadow();
     	}
+    	disconnect();
     	super.onDestroy();
     }
     
+    // 处理返回键
+    public boolean onKeyDown(int keyCode, KeyEvent event) {  
+    	PackageManager pm = getPackageManager();
+        ResolveInfo homeInfo = pm.resolveActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0);
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            ActivityInfo ai = homeInfo.activityInfo;
+            Intent startIntent = new Intent(Intent.ACTION_MAIN);
+            startIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+            startIntent.setComponent(new ComponentName(ai.packageName, ai.name));
+            startActivitySafely(startIntent);
+            return true;
+        } else
+            return super.onKeyDown(keyCode, event);
+    }
+
+    // Start main activity safely
+    void startActivitySafely(Intent intent) {  
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "Unable to open software.", Toast.LENGTH_SHORT).show();
+        } catch (SecurityException e) {
+            Toast.makeText(this, "Unable to open software.", Toast.LENGTH_SHORT).show();
+            Log.e("Error","Launcher does not have the permission to launch "
+            		+ intent
+            		+ ". Make sure to create a MAIN intent-filter for the corresponding activity "
+            		+ "or use the exported attribute for this activity.",
+            		e);
+        }
+    }
+    
+    // 勾选“保存账号“时的处理
     private OnCheckedChangeListener listener_keep_account = new OnCheckedChangeListener()
     {
 		@Override
 		public void onCheckedChanged(CompoundButton arg0, boolean arg1) {
 			save_conf();
 			save_shadow();
-			if (keep_account.isChecked() == false)
+			if (keep_account.isChecked() == false){
+				save_password.setChecked(false);
 				sign_auto.setChecked(false);
+			}
 		}
     };
     
+    // 连接键监听器
     private OnClickListener listener_connect = new OnClickListener()
     {
     	public void onClick(View v)
@@ -125,6 +198,17 @@ public class ipgw extends Activity {
     		status.setText(result);
     	}
     };
+    
+    // 退出键监听器，退出程序
+    private OnClickListener listener_exit = new OnClickListener()
+    {
+    	public void onClick(View v)
+    	{
+    		exit_dialog();
+    	}
+    };
+    
+    //断开所有连接键监听器
     private OnClickListener listener_disconnect_all = new OnClickListener()
     {
     	public void onClick(View v)
@@ -134,6 +218,7 @@ public class ipgw extends Activity {
     		status.setText(result);
     	}
     };
+    // 断开连接键监听器
     private OnClickListener listener_disconnect = new OnClickListener()
     {
     	public void onClick(View v)
@@ -143,6 +228,26 @@ public class ipgw extends Activity {
     		status.setText(result);
     	}
     };
+    
+    // 退出确认对话框
+    private void exit_dialog() {
+    	AlertDialog.Builder builder = new Builder(ipgw.this);
+    	builder.setMessage("退出将断开连接，确认退出吗？");
+    	builder.setTitle("提示");
+    	builder.setPositiveButton("确认", new DialogInterface.OnClickListener(){
+    		public void onClick(DialogInterface dislog, int which){
+    			dislog.dismiss();
+    			ipgw.this.finish();
+    		}
+    	});
+    	builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int which) {
+				dialog.dismiss();
+			}
+		});
+    	builder.create().show();
+    }
+    
     // 连接
     private String connect() {
     	String result="";
@@ -155,6 +260,10 @@ public class ipgw extends Activity {
     	}catch (Exception e){
     		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
+		if (timer != null)
+			timer.cancel();
+		timer = new Timer();
+		//timer.schedule(mytask, 0, HEART_BEAT_INTERVAL);
     	return result;
     };
     // 断开所有连接
@@ -167,8 +276,10 @@ public class ipgw extends Activity {
     		result = https_request();
     		result = parse_result(result);
     	} catch (Exception e) {
-    		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
+    		result = "断开所有连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
+		if (timer != null)
+			timer.cancel();
     	return result;
     };
     // 断开当前连接
@@ -177,14 +288,67 @@ public class ipgw extends Activity {
     	try{
     		USER_ID = String.valueOf(userid.getText());
     		PASSWORD = String.valueOf(passwd.getText());
-    		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range="+get_range()+"&operation=disconnectall";
+    		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range="+get_range()+"&operation=disconnect";
     		result = https_request();
     		result = parse_result(result);
     	} catch (Exception e) {
-    		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
+    		result = "断开当前连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
+		if (timer != null)
+			timer.cancel();
     	return result;
     };
+    
+    // 定时器任务，连接心跳服务器
+    private class myTimerTask extends TimerTask{
+    	public void run() {
+    		Log.i("heartbeat","TimerUp, send heartbeat.");
+    		if (send_heartbeat() == 0)
+    			Log.i("heartbeat", "success");
+    		else
+    			Log.i("heartbeat", "failed");
+    	}
+    }
+    
+    // 向心跳服务器发送心跳并获得心跳
+    private int send_heartbeat(){
+		String sendMessage = "r[android]";
+		String recvMessage;
+		byte[] recvBytes = new byte[1024];
+    	try{
+    		InetSocketAddress isa = new InetSocketAddress(HEARTBEAT_SERVER_1, HEARTBEAT_SERVER_PORT_1);
+    		DatagramPacket send_dp = new DatagramPacket(sendMessage.getBytes(), 0, sendMessage.length(), isa);
+    		DatagramPacket recv_dp = new DatagramPacket(recvBytes, 0, sendMessage.length(), isa);
+    		DatagramSocket ds = new DatagramSocket(isa);
+    		Log.i("heartbeat 1", "1");
+    		ds.bind(isa);
+    		Log.i("heartbeat 1", "2");
+    		ds.send(send_dp);
+    		Log.i("heartbeat 1", "3");
+    		ds.receive(recv_dp);
+    		Log.i("heartbeat 1", "4");
+    		recvMessage = new String(recvBytes);
+    		Log.i("heartbeat 1", recvMessage);
+    		return 0;
+    	}catch (Exception e){
+    		Log.e("heartbeat 1", e.getMessage());
+    	}
+    	try{
+    		InetSocketAddress isa = new InetSocketAddress(HEARTBEAT_SERVER_2, HEARTBEAT_SERVER_PORT_2);
+    		DatagramPacket send_dp = new DatagramPacket(sendMessage.getBytes(), 0, sendMessage.length(), isa);
+    		DatagramPacket recv_dp = new DatagramPacket(recvBytes, 0, sendMessage.length(), isa);
+    		DatagramSocket ds = new DatagramSocket();
+    		ds.bind(isa);
+    		ds.send(send_dp);
+    		ds.receive(recv_dp);
+    		recvMessage = new String(recvBytes);
+    		Log.i("heartbeat 1", recvMessage);
+    		return 0;
+    	}catch (Exception e){
+    		Log.e("heartbeat 2", e.getMessage());
+    		return 1;
+    	}
+    }
     
     // https请求
     private String https_request() throws Exception{
@@ -231,6 +395,9 @@ public class ipgw extends Activity {
     	else if (data.indexOf("断开全部连接成功") >= 0){
     		result = "断开全部连接成功";
     	}
+    	else if (data.indexOf("网络断开成功") >= 0){
+    		result = "网络断开成功";
+    	}
     	else
     		result = "未知错误";
     	return result;
@@ -276,7 +443,7 @@ public class ipgw extends Activity {
     		String conf_string;
     		conf_string = br.readLine();
     		//debug.setText(debug.getText() + "conf:" + conf_string + "\n");
-    		if (conf_string.length() >= 3){
+    		if (conf_string.length() >= 4){
     			if (conf_string.charAt(1) == '0'){
     				userid.setText("");
     				passwd.setText("");
@@ -294,14 +461,20 @@ public class ipgw extends Activity {
     				free.setChecked(false);
     				global.setChecked(true);
     			}
-    			if (conf_string.charAt(2) == '0')
+    			if (conf_string.charAt(3) == '0')
     				sign_auto.setChecked(false);
     			else
     				sign_auto.setChecked(true);
-    			
+    			if (conf_string.charAt(2) == '0'){
+    				passwd.setText("");
+    				save_password.setChecked(false);
+    			}
+    			else
+    				save_password.setChecked(true);
     		}
     	}catch (Exception e){
-    		debug.setText(debug.getText() +"\n"+ e.getMessage());
+    		//debug.setText(debug.getText() +"\n"+ e.getMessage());
+    		Log.e("read conf internal", e.getMessage());
     	}
     }
     
@@ -329,7 +502,8 @@ public class ipgw extends Activity {
     		
     		//debug.setText(debug.getText() + new String(shadow_raw_byte) + "\n");
     	}catch (Exception e){
-    		debug.setText(debug.getText() +"\n"+ e.getMessage());
+    		//debug.setText(debug.getText() +"\n"+ e.getMessage());
+    		Log.e("read shadow internal", e.getMessage());
     	}
     }
     
@@ -343,6 +517,9 @@ public class ipgw extends Activity {
       		if (keep_account.isChecked() == true)
       			conf_string += "1";
       		else conf_string += "0";
+      		if (save_password.isChecked() == true)
+      			conf_string += "1";
+      		else conf_string += "0";
       		if (sign_auto.isChecked() == true)
       			conf_string += "1";
       		else conf_string += "0";
@@ -352,7 +529,8 @@ public class ipgw extends Activity {
       		out.flush();
       		out.close();
     	}catch (Exception e){
-    		debug.setText(debug.getText() +"\n" + e.getMessage());
+    		//debug.setText(debug.getText() +"\n" + e.getMessage());
+    		Log.e("save conf", e.getMessage());
     	}
     }
     
@@ -369,7 +547,8 @@ public class ipgw extends Activity {
       		out.flush();
       		out.close();
     	}catch (Exception e){
-    		debug.setText(debug.getText() +"\n" + e.getMessage());
+    		//debug.setText(debug.getText() +"\n" + e.getMessage());
+    		Log.e("save shadow", e.getMessage());
     	}
     }
     
@@ -418,7 +597,8 @@ public class ipgw extends Activity {
     			if(cert_host.equals(cert_local) == false)
     				throw new CertificateException("证书验证失败");
     		}catch (Exception e){
-    			debug.setText(debug.getText() + "\n" + e.getMessage());
+    			//debug.setText(debug.getText() + "\n" + e.getMessage());
+    			Log.e("Certificate", e.getMessage());
     			throw new CertificateException("证书读取失败");
     		}
     	}
