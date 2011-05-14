@@ -61,9 +61,11 @@ public class ipgw extends Activity {
     // 心跳计时器
     private Timer timer;
     private myTimerTask mytask;
-    static final int HEART_BEAT_INTERVAL = 30000;
+    static final int HEART_BEAT_INTERVAL = 20000;
     static final String[] HEARTBEAT_SERVER = {"162.105.129.27","202.112.7.13"};
     static final int[] HEARTBEAT_SERVER_PORT = {7777,7777};
+    
+    boolean onConnect;
     
     
     /** Called when the activity is first created. */
@@ -98,8 +100,6 @@ public class ipgw extends Activity {
         
         conf_file = new File("/sdcard/ipgw.conf");
         shadow_file = new File("/sdcard/ipgw.shadow");
-        
-        mytask = new myTimerTask();
         
         // 载入配置文件和用户名密码
         try{
@@ -188,6 +188,15 @@ public class ipgw extends Activity {
 		}
     };
     
+    // 退出键监听器，退出程序
+    private OnClickListener listener_exit = new OnClickListener()
+    {
+    	public void onClick(View v)
+    	{
+    		exit_dialog();
+    	}
+    };
+    
     // 连接键监听器
     private OnClickListener listener_connect = new OnClickListener()
     {
@@ -196,15 +205,6 @@ public class ipgw extends Activity {
     		String result;
     		result = connect();
     		status.setText(result);
-    	}
-    };
-    
-    // 退出键监听器，退出程序
-    private OnClickListener listener_exit = new OnClickListener()
-    {
-    	public void onClick(View v)
-    	{
-    		exit_dialog();
     	}
     };
     
@@ -257,13 +257,20 @@ public class ipgw extends Activity {
     		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range="+get_range()+"&operation=connect";
     		result = https_request();
     		result = parse_result(result);
+    		onConnect = true;
     	}catch (Exception e){
     		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
+    		Log.e("connect", e.getMessage());
+    		onConnect = false;
     	}
-		if (timer != null)
-			timer.cancel();
-		timer = new Timer();
-		timer.schedule(mytask, 0, HEART_BEAT_INTERVAL);
+    	
+    	if (onConnect == true){
+    		if (timer != null)
+    			timer.cancel();
+    		timer = new Timer();
+    		mytask = new myTimerTask();
+    		timer.schedule(mytask, 0, HEART_BEAT_INTERVAL);
+    	}
     	return result;
     };
     // 断开所有连接
@@ -275,9 +282,11 @@ public class ipgw extends Activity {
     		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range=2&operation=disconnectall";
     		result = https_request();
     		result = parse_result(result);
+    		onConnect = false;
     	} catch (Exception e) {
     		result = "断开所有连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
+    	
 		if (timer != null)
 			timer.cancel();
     	return result;
@@ -291,9 +300,11 @@ public class ipgw extends Activity {
     		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range="+get_range()+"&operation=disconnect";
     		result = https_request();
     		result = parse_result(result);
+    		onConnect = false;
     	} catch (Exception e) {
     		result = "断开当前连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
+    	
 		if (timer != null)
 			timer.cancel();
     	return result;
@@ -303,10 +314,19 @@ public class ipgw extends Activity {
     private class myTimerTask extends TimerTask{
     	public void run() {
     		Log.i("heartbeat","TimerUp, send heartbeat.");
-    		if (send_heartbeat() == 0)
-    			Log.i("heartbeat", "success");
-    		else
-    			Log.i("heartbeat", "failed");
+    		if (onConnect == false){
+    			Log.i("timerup","Reconnect");
+    			connect();
+    		}
+    		else{
+    			if (send_heartbeat() == 0)
+    				Log.i("heartbeat", "success");
+    			else{
+    				Log.i("heartbeat", "failed");
+    				//status.setText("连接已断开，正在尝试重新连接...");
+    				onConnect = false;
+    			}
+    		}
     	}
     }
     
@@ -349,6 +369,7 @@ public class ipgw extends Activity {
     	HttpsURLConnection conn = (HttpsURLConnection)new URL(url).openConnection();
     	conn.setDoOutput(true);
     	conn.setDoInput(true);
+    	conn.setReadTimeout(5000);
     	conn.connect();
     	
     	BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "GBK"));
@@ -357,6 +378,8 @@ public class ipgw extends Activity {
     	while ((line = br.readLine()) != null)
     		sb.append(line);
     	result = sb.toString();
+    	
+    	conn.disconnect();
     	
     	return result;
     }
