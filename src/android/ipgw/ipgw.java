@@ -3,6 +3,7 @@ package android.ipgw;
 import android.ipgw.R;
 
 import android.app.Activity;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -413,7 +414,7 @@ public class ipgw extends Activity {
     			X509Certificate cert_host = chain[0];
     			CertificateFactory cf = CertificateFactory.getInstance("X.509");
     			//FileInputStream fis = new FileInputStream("ca.cer");
-    			InputStream is = getClass().getResourceAsStream("/ca.cer");
+    			InputStream is = getClass().getResourceAsStream("/res/raw/ca.cer");
     			X509Certificate cert_local = (X509Certificate)cf.generateCertificate(is);
     			if(cert_host.equals(cert_local) == false)
     				throw new CertificateException("证书验证失败");
