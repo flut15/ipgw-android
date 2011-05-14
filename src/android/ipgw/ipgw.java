@@ -412,13 +412,14 @@ public class ipgw extends Activity {
     		try{
     			X509Certificate cert_host = chain[0];
     			CertificateFactory cf = CertificateFactory.getInstance("X.509");
-    			FileInputStream fis = new FileInputStream("ca.cer");
-    			X509Certificate cert_local = (X509Certificate)cf.generateCertificate(fis);
+    			//FileInputStream fis = new FileInputStream("ca.cer");
+    			InputStream is = getClass().getResourceAsStream("/ca.cer");
+    			X509Certificate cert_local = (X509Certificate)cf.generateCertificate(is);
     			if(cert_host.equals(cert_local) == false)
-    				throw new CertificateException("证书验证失败或证书不存在");
+    				throw new CertificateException("证书验证失败");
     		}catch (Exception e){
     			debug.setText(debug.getText() + "\n" + e.getMessage());
-    			throw new CertificateException("证书验证失败或证书不存在");
+    			throw new CertificateException("证书读取失败");
     		}
     	}
     	// 返回接受的发行商数组
