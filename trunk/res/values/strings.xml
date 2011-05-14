@@ -16,4 +16,5 @@
     <string name="keep_account">Keep account</string>
     <string name="sign_automatically">Sign automatically</string>
     <string name="unsigned">未登录</string>
+    <string name="exit">Exit</string>
 </resources>
