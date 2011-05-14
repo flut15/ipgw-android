@@ -153,7 +153,7 @@ public class ipgw extends Activity {
     		result = https_request();
     		result = parse_result(result);
     	}catch (Exception e){
-    		result = "连接失败，请检查网络连接是否正常。\n" + e.getMessage();
+    		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
     	return result;
     };
@@ -167,7 +167,7 @@ public class ipgw extends Activity {
     		result = https_request();
     		result = parse_result(result);
     	} catch (Exception e) {
-    		result = "连接失败，请检查网络连接是否正常。\n" + e.getMessage();
+    		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
     	return result;
     };
@@ -181,7 +181,7 @@ public class ipgw extends Activity {
     		result = https_request();
     		result = parse_result(result);
     	} catch (Exception e) {
-    		result = "连接失败，请检查网络连接是否正常。\n" + e.getMessage();
+    		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
     	return result;
     };
@@ -196,7 +196,6 @@ public class ipgw extends Activity {
     	HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
     	HttpsURLConnection.setDefaultHostnameVerifier(new MyHostnameVerifier());
     	HttpsURLConnection conn = (HttpsURLConnection)new URL(url).openConnection();
-    	conn.setHostnameVerifier(new MyHostnameVerifier());
     	conn.setDoOutput(true);
     	conn.setDoInput(true);
     	conn.connect();
@@ -302,7 +301,7 @@ public class ipgw extends Activity {
     			
     		}
     	}catch (Exception e){
-    		debug.setText(debug.getText() + e.getMessage());
+    		debug.setText(debug.getText() +"\n"+ e.getMessage());
     	}
     }
     
@@ -330,7 +329,7 @@ public class ipgw extends Activity {
     		
     		//debug.setText(debug.getText() + new String(shadow_raw_byte) + "\n");
     	}catch (Exception e){
-    		debug.setText(debug.getText() + e.getMessage());
+    		debug.setText(debug.getText() +"\n"+ e.getMessage());
     	}
     }
     
@@ -353,7 +352,7 @@ public class ipgw extends Activity {
       		out.flush();
       		out.close();
     	}catch (Exception e){
-    		debug.setText(debug.getText() + e.getMessage());
+    		debug.setText(debug.getText() +"\n" + e.getMessage());
     	}
     }
     
@@ -370,7 +369,7 @@ public class ipgw extends Activity {
       		out.flush();
       		out.close();
     	}catch (Exception e){
-    		debug.setText(debug.getText() + e.getMessage());
+    		debug.setText(debug.getText() +"\n" + e.getMessage());
     	}
     }
     
@@ -410,6 +409,17 @@ public class ipgw extends Activity {
     	throws CertificateException {
     		// 检查服务器端可信任状态
     		//debug.setText(debug.getText()+"B - ");
+    		try{
+    			X509Certificate cert_host = chain[0];
+    			CertificateFactory cf = CertificateFactory.getInstance("X.509");
+    			FileInputStream fis = new FileInputStream("ca.cer");
+    			X509Certificate cert_local = (X509Certificate)cf.generateCertificate(fis);
+    			if(cert_host.equals(cert_local) == false)
+    				throw new CertificateException("证书验证失败或证书不存在");
+    		}catch (Exception e){
+    			debug.setText(debug.getText() + "\n" + e.getMessage());
+    			throw new CertificateException("证书验证失败或证书不存在");
+    		}
     	}
     	// 返回接受的发行商数组
     	public X509Certificate[] getAcceptedIssuers() {
@@ -419,8 +429,10 @@ public class ipgw extends Activity {
     }
     private class MyHostnameVerifier implements HostnameVerifier{
     	public boolean verify(String hostname, SSLSession session){
-    		//debug.setText(debug.getText() + "\n" + hostname + "\n");
-    		return true;
+    		//debug.setText(debug.getText() + "\nHOSTNAME:" + hostname);
+    		if (hostname.equalsIgnoreCase("its.pku.edu.cn"))
+    			return true;
+    		return false;
     	}
     }
 }
