@@ -46,6 +46,7 @@ public final class R {
         public static final int disconnect=0x7f050007;
         public static final int disconnect_all=0x7f05000c;
         public static final int empty=0x7f050004;
+        public static final int exit=0x7f050010;
         public static final int free=0x7f05000a;
         public static final int global=0x7f05000b;
         public static final int hello=0x7f050000;
