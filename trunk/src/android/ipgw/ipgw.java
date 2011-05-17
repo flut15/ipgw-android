@@ -545,16 +545,16 @@ public class ipgw extends Activity {
     				free.setChecked(false);
     				global.setChecked(true);
     			}
-    			if (conf_string.charAt(3) == '0')
-    				sign_auto.setChecked(false);
-    			else
-    				sign_auto.setChecked(true);
     			if (conf_string.charAt(2) == '0'){
     				passwd.setText("");
     				save_password.setChecked(false);
     			}
     			else
     				save_password.setChecked(true);
+    			if (conf_string.charAt(3) == '0')
+    				sign_auto.setChecked(false);
+    			else
+    				sign_auto.setChecked(true);
     		}
     	}catch (Exception e){
     		//debug.setText(debug.getText() +"\n"+ e.getMessage());
