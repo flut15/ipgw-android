@@ -189,6 +189,9 @@ public class ipgw extends Activity {
 				save_password.setChecked(false);
 				sign_auto.setChecked(false);
 			}
+			if (save_password.isChecked() == false) {
+				sign_auto.setChecked(false);
+			}
 		}
     };
     
@@ -670,14 +673,37 @@ public class ipgw extends Activity {
     		// 检查服务器端可信任状态
     		//debug.setText(debug.getText()+"B - ");
     		try{
-    			X509Certificate cert_host = chain[0];
+    			X509Certificate cert_root = null;
+    			InputStream is = getClass().getResourceAsStream("/res/raw/ca.cer");
+    			CertificateFactory cf = CertificateFactory.getInstance("X.509");
+    			while (is.available() > 0){
+    				cert_root = (X509Certificate)cf.generateCertificate(is);
+    				byte []b = new byte[50];
+    				//is.read(b);
+    				Log.i("serverTrusted", "check root"+is.available()+new String(b));
+    			}
+    			int i;
+    			chain[chain.length-1].checkValidity();
+    			chain[chain.length-1].verify(cert_root.getPublicKey());
+    			for (i = chain.length - 2; i >=0; i --){
+    				chain[i].checkValidity();
+    				chain[i].verify(chain[i+1].getPublicKey());
+    			}
+    			
+    			/*
+    			X509Certificate cert_host_1 = chain[0];
+    			X509Certificate cert_host_2 = chain[1];
     			CertificateFactory cf = CertificateFactory.getInstance("X.509");
     			//FileInputStream fis = new FileInputStream("ca.cer");
     			InputStream is = getClass().getResourceAsStream("/res/raw/ca.cer");
-    			X509Certificate cert_local = (X509Certificate)cf.generateCertificate(is);
-    			if(cert_host.equals(cert_local) == false)
+    			X509Certificate cert_local_1 = (X509Certificate)cf.generateCertificate(is);
+    			X509Certificate cert_local_2 = (X509Certificate)cf.generateCertificate(is);
+    			X509Certificate cert_local_3 = (X509Certificate)cf.generateCertificate(is);
+    			if(cert_host_1.equals(cert_local_1) == false)
     				throw new CertificateException("证书验证失败");
-    			cert_host.checkValidity();
+    			cert_host_1.checkValidity();
+    			*/
+    			
     		}
     		catch (CertificateExpiredException e){
     			Log.e("Certificate expire", e.getMessage());
@@ -691,7 +717,6 @@ public class ipgw extends Activity {
     			Log.e("Certificate endoce", e.getMessage());
     			throw new CertificateException("证书编码错误-"+e.getMessage());
     		}
-    		/*
     		catch (NoSuchAlgorithmException e){
     			Log.e("Certificate alg", e.getMessage());
     			throw new CertificateException("不支持的证书算法-"+e.getMessage());
@@ -708,7 +733,6 @@ public class ipgw extends Activity {
     			Log.e("Certificate sig", e.getMessage());
     			throw new CertificateException("证书签名错误-"+e.getMessage());
     		}
-    		*/
     		catch (Exception e){
     			//debug.setText(debug.getText() + "\n" + e.getMessage());
     			Log.e("Certificate", e.getMessage());
