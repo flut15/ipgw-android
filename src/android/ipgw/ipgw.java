@@ -27,7 +27,11 @@ import android.widget.Toast;
 
 import java.io.*;
 import java.net.*;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.security.SignatureException;
 import java.security.cert.*;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -61,7 +65,7 @@ public class ipgw extends Activity {
     // 心跳计时器
     private Timer timer;
     private myTimerTask mytask;
-    static final int HEART_BEAT_INTERVAL = 20000;
+    static final int HEART_BEAT_INTERVAL = 5000;
     static final String[] HEARTBEAT_SERVER = {"162.105.129.27","202.112.7.13"};
     static final int[] HEARTBEAT_SERVER_PORT = {7777,7777};
     
@@ -257,7 +261,6 @@ public class ipgw extends Activity {
     		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range="+get_range()+"&operation=connect";
     		result = https_request();
     		result = parse_result(result);
-    		onConnect = true;
     	}catch (Exception e){
     		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
     		Log.e("connect", e.getMessage());
@@ -282,7 +285,6 @@ public class ipgw extends Activity {
     		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range=2&operation=disconnectall";
     		result = https_request();
     		result = parse_result(result);
-    		onConnect = false;
     	} catch (Exception e) {
     		result = "断开所有连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
@@ -300,7 +302,6 @@ public class ipgw extends Activity {
     		argument = "?uid="+USER_ID+"&password="+PASSWORD+"&timeout=1&range="+get_range()+"&operation=disconnect";
     		result = https_request();
     		result = parse_result(result);
-    		onConnect = false;
     	} catch (Exception e) {
     		result = "断开当前连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
@@ -387,6 +388,60 @@ public class ipgw extends Activity {
     // 解析结果函数
     private String parse_result(String data){
     	String result = "";
+    	int start_pos = data.indexOf("<!--IPGWCLIENT_START") + "<!--IPGWCLIENT_START".length();
+    	int end_pos = data.indexOf("IPGWCLIENT_END-->");
+    	if ( start_pos >= 0 && end_pos > start_pos ){
+    		String params = data.substring(start_pos, end_pos);
+    		String success = parse_param(params, "SUCCESS");
+    		Log.i("params success", success);
+    		if (success.compareTo("YES") == 0){
+    			if (parse_param(params, "STATE").compareTo("connected") == 0){
+    				String username = parse_param(params, "USERNAME");
+    				String fixrate = parse_param(params, "FIXRATE");
+    				String scope = parse_param(params, "SCOPE");
+    				String deficit = parse_param(params, "DEFICIT");
+    				String connections = parse_param(params, "CONNECTIONS");
+    				String balance = parse_param(params, "BALANCE");
+    				String ip = parse_param(params, "IP");
+    				String message = parse_param(params, "MESSAGE");
+    				result += "连接成功\n";
+    				result += "用 户 名："+username+"\n";
+    				result += "当前IP："+ip+"\n";
+    				if (scope.compareTo("domestic") == 0)
+    					result += "访问范围：免费地址\n";
+    				else
+    					result += "访问范围：收费地址\n";
+    				if (fixrate.compareTo("NO") == 0)
+    					result += "包月状态：未包月\n";
+    				else
+    					result += "包月状态：已包月\n";
+    				if (deficit.compareTo("NO") == 0)
+    					result += "欠费断网：是\n";
+    				else
+    					result += "欠费断网：否\n";
+    				result += "当前连接："+connections+"个\n";
+    				result += "账户余额："+balance+"元\n";
+    				result += message;
+    	    		onConnect = true;
+    			} else {
+    				if (parse_param(params, "CONNECTIONS").compareTo("0") == 0)
+    					result += "断开全部连接成功";
+    				else result += "断开连接成功";
+    	    		onConnect = false;
+    			}
+    		}
+    		else{
+    			String reason = parse_param(params, "REASON");
+    			result += "连接失败\n"+reason;
+        		onConnect = false;
+    		}
+    	}else{
+    		result = "未知错误";
+    		onConnect = false;
+    	}
+    	return result;
+    	/*
+    	String result = "";
     	if (data.indexOf("口令错误") >= 0)
     		result = "密码错误，请重新输入密码";
     	else if (data.indexOf("账户名错误") >= 0)
@@ -411,8 +466,23 @@ public class ipgw extends Activity {
     	else
     		result = "未知错误";
     	return result;
+    	*/
     }
     
+    private String parse_param(String data, String param){
+    	String result = "";
+    	int param_pos = data.indexOf(param);
+    	if (param_pos < 0)
+    		result = "错误的参数";
+    	else {
+    		int param_start = param_pos + param.length() + 1;
+    		int param_end = data.indexOf(" ", param_start);
+    		result = data.substring(param_start, param_end);
+    	}
+    	return result;
+    }
+    
+    /*
     // 解析下一个参数
     private String parse_next_param(String data, int start){
     	String result = "";
@@ -438,6 +508,7 @@ public class ipgw extends Activity {
     	result = data.substring(spos, epos);
     	return result;
     }
+    */
     
     // 获得访问范围
     private int get_range() {
@@ -566,11 +637,11 @@ public class ipgw extends Activity {
     public static byte[] encode(byte[] input, byte[] key) 
     	throws Exception 
     {
-    	SecretKey   deskey   =   new   javax.crypto.spec.SecretKeySpec(key,   "DES"); 
-    	Cipher   c1   =   Cipher.getInstance("DES"); 
-    	c1.init(Cipher.ENCRYPT_MODE,   deskey); 
-    	byte[]   cipherByte   =   c1.doFinal(input); 
-    	return   cipherByte; 
+    	SecretKey deskey = new javax.crypto.spec.SecretKeySpec(key, "DES"); 
+    	Cipher c1 = Cipher.getInstance("DES"); 
+    	c1.init(Cipher.ENCRYPT_MODE, deskey); 
+    	byte[] cipherByte = c1.doFinal(input); 
+    	return cipherByte; 
     } 
     
     //解密 
@@ -606,10 +677,42 @@ public class ipgw extends Activity {
     			X509Certificate cert_local = (X509Certificate)cf.generateCertificate(is);
     			if(cert_host.equals(cert_local) == false)
     				throw new CertificateException("证书验证失败");
-    		}catch (Exception e){
+    			cert_host.checkValidity();
+    		}
+    		catch (CertificateExpiredException e){
+    			Log.e("Certificate expire", e.getMessage());
+    			throw new CertificateException("证书到期-"+e.getMessage());
+    		}
+    		catch (CertificateNotYetValidException e){
+    			Log.e("Certificate invalid", e.getMessage());
+    			throw new CertificateException("证书失效-"+e.getMessage());
+    		}
+    		catch (CertificateException e){
+    			Log.e("Certificate endoce", e.getMessage());
+    			throw new CertificateException("证书编码错误-"+e.getMessage());
+    		}
+    		/*
+    		catch (NoSuchAlgorithmException e){
+    			Log.e("Certificate alg", e.getMessage());
+    			throw new CertificateException("不支持的证书算法-"+e.getMessage());
+    		}
+    		catch (NoSuchProviderException e){
+    			Log.e("Certificate provide", e.getMessage());
+    			throw new CertificateException("证书提供者错误-"+e.getMessage());
+    		}
+    		catch (InvalidKeyException e){
+    			Log.e("Certificate key", e.getMessage());
+    			throw new CertificateException("无效的密钥-"+e.getMessage());
+    		}
+    		catch (SignatureException e){
+    			Log.e("Certificate sig", e.getMessage());
+    			throw new CertificateException("证书签名错误-"+e.getMessage());
+    		}
+    		*/
+    		catch (Exception e){
     			//debug.setText(debug.getText() + "\n" + e.getMessage());
     			Log.e("Certificate", e.getMessage());
-    			throw new CertificateException("证书读取失败");
+    			throw new CertificateException("证书读取失败-"+e.getMessage());
     		}
     	}
     	// 返回接受的发行商数组

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ipgw</string>
-    <string name="title">IPGW of PKU for Android</string>
+    <string name="app_name">ipgwclient</string>
+    <string name="title">北京大学校园网IP网关认证客户端(android)</string>
     <string name="userid_text">用户名:</string>
     <string name="empty"></string>
     <string name="passwd_text">密码:</string>
