@@ -6,7 +6,7 @@
             <LinearLayout android:id="@+id/linearLayout4" android:layout_height="fill_parent" android:orientation="vertical" android:layout_width="fill_parent">
                 <TextView android:layout_height="wrap_content" android:id="@+id/title" android:layout_width="fill_parent" android:text="@string/title"></TextView>
                 <TextView android:layout_height="wrap_content" android:id="@+id/userid_text" android:layout_width="fill_parent" android:text="@string/userid_text"></TextView>
-                <EditText android:inputType="number" android:id="@+id/userid" android:layout_height="wrap_content" android:text="@string/empty" android:maxLines="1" android:layout_width="fill_parent" android:numeric="integer"></EditText>
+                <EditText android:id="@+id/userid" android:layout_height="wrap_content" android:text="@string/empty" android:maxLines="1" android:layout_width="fill_parent"></EditText>
                 <TextView android:layout_height="wrap_content" android:id="@+id/passwd_text" android:layout_width="fill_parent" android:text="@string/passwd_text"></TextView>
                 <EditText android:inputType="textPassword" android:id="@+id/password" android:layout_height="wrap_content" android:text="@string/empty" android:maxLines="1" android:layout_width="fill_parent" android:password="true" android:numeric="integer"></EditText>
                 <LinearLayout android:id="@+id/linearLayout2" android:layout_height="wrap_content" android:layout_width="fill_parent">
