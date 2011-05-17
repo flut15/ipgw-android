@@ -107,6 +107,17 @@ public class ipgw extends Activity {
         
         // 载入配置文件和用户名密码
         try{
+        	if (!conf_file.exists()){
+        		conf_file.createNewFile();
+        	}
+        	else
+        		read_config();
+        }catch (Exception e){
+        	Log.e("read shadow", e.getMessage());
+        }
+        	/*
+        // 载入配置文件和用户名密码
+        try{
         	if (!shadow_file.exists()){
         		shadow_file.createNewFile();
         	}
@@ -126,6 +137,7 @@ public class ipgw extends Activity {
         	//debug.setText(debug.getText() + e.getMessage());
         	Log.e("read conf", e.getMessage());
         }
+        */
         
         // 自动连接
         if (sign_auto.isChecked() == true){
@@ -139,8 +151,9 @@ public class ipgw extends Activity {
     // 程序退出时的处理
     public void onDestroy() {
     	if (keep_account.isChecked() == true){
-    		save_conf();
-    		save_shadow();
+    		//save_conf();
+    		//save_shadow();
+    		save_config();
     	}
     	disconnect();
     	super.onDestroy();
@@ -183,8 +196,9 @@ public class ipgw extends Activity {
     {
 		@Override
 		public void onCheckedChanged(CompoundButton arg0, boolean arg1) {
-			save_conf();
-			save_shadow();
+			//save_conf();
+			//save_shadow();
+			save_config();
 			if (keep_account.isChecked() == false){
 				save_password.setChecked(false);
 				sign_auto.setChecked(false);
@@ -258,6 +272,7 @@ public class ipgw extends Activity {
     // 连接
     private String connect() {
     	String result="";
+    	Log.i("connect", "connect start");
     	try{
     		USER_ID = String.valueOf(userid.getText());
     		PASSWORD = String.valueOf(passwd.getText());
@@ -443,33 +458,6 @@ public class ipgw extends Activity {
     		onConnect = false;
     	}
     	return result;
-    	/*
-    	String result = "";
-    	if (data.indexOf("口令错误") >= 0)
-    		result = "密码错误，请重新输入密码";
-    	else if (data.indexOf("账户名错误") >= 0)
-    		result = "用户名错误，请重新输入用户名";
-    	else if (data.indexOf("网络连接成功") >= 0){
-    		result = "登陆成功";
-    		result += "\n用 户 名："+parse_next_param(data, data.indexOf("用&nbsp;户&nbsp;名："));
-    		result += "\n当前地址："+parse_next_param(data, data.indexOf("当前地址"));
-    		result += "\n包月状态："+parse_next_param(data, data.indexOf("包月状态"));
-    		result += "\n访问范围："+parse_next_param(data, data.indexOf("访问范围"));
-    		result += "\n账户余额："+parse_next_param(data, data.indexOf("账户余额"));
-    	}
-    	else if (data.indexOf("不可在当前计算机访问收费地址") >= 0){
-    		result = "连接收费地址失败，请检查是否开通收费网关";
-    	}
-    	else if (data.indexOf("断开全部连接成功") >= 0){
-    		result = "断开全部连接成功";
-    	}
-    	else if (data.indexOf("网络断开成功") >= 0){
-    		result = "网络断开成功";
-    	}
-    	else
-    		result = "未知错误";
-    	return result;
-    	*/
     }
     
     private String parse_param(String data, String param){
@@ -485,34 +473,6 @@ public class ipgw extends Activity {
     	return result;
     }
     
-    /*
-    // 解析下一个参数
-    private String parse_next_param(String data, int start){
-    	String result = "";
-    	int spos = start + 1;
-    	int epos;
-    	while (data.charAt(spos) != '>'){
-    		spos ++;
-    	}
-    	spos ++;
-    	while (data.charAt(spos) != '>')
-    		spos ++;
-    	spos ++;
-    	while (data.charAt(spos) == '<'){
-    		spos ++;
-    		while (data.charAt(spos) != '>')
-    			spos ++;
-    		spos ++;
-    	}
-    	epos = spos;
-    	while (data.charAt(epos) != '<'){
-    		epos ++;
-    	}
-    	result = data.substring(spos, epos);
-    	return result;
-    }
-    */
-    
     // 获得访问范围
     private int get_range() {
     	if (free.isChecked())
@@ -520,6 +480,95 @@ public class ipgw extends Activity {
     	return 1;
     }
     
+    // 读取配置文件和用户名密码（新）
+    private void read_config(){
+    	try{
+    		FileInputStream fis = new FileInputStream(conf_file);
+    		byte[] config_byte_in = new byte[4096];
+    		byte[] config_byte;
+    		byte[] config_raw_byte;
+    		int len = fis.read(config_byte_in);
+    		config_byte = new byte[len];
+    		int i;
+    		for(i = 0; i < len; i ++)
+    			config_byte[i] = config_byte_in[i];
+    		config_raw_byte = decode(config_byte, key.getBytes());
+    		
+    		String config_string = new String(config_raw_byte);
+    		String is_free = parse_param(config_string, "1-FREE");
+    		String is_keep_account = parse_param(config_string, "2-KEEPACCOUNT");
+    		String is_save_password = parse_param(config_string, "3-SAVEPASSWORD");
+    		String is_sign_auto = parse_param(config_string, "4-SIGNAUTO");
+    		String username_string = parse_param(config_string, "5-USERNAME");
+    		String password_string = parse_param(config_string, "6-PASSWD");
+    		if (is_free.compareTo("NO") == 0){
+    			free.setChecked(false);
+    			global.setChecked(true);
+    		}else{
+    			free.setChecked(true);
+    			global.setChecked(false);
+    		}
+    		if (is_keep_account.compareTo("YES") == 0)
+    			keep_account.setChecked(true);
+    		else keep_account.setChecked(false);
+    		if (is_save_password.compareTo("YES") == 0)
+    			save_password.setChecked(true);
+    		else save_password.setChecked(false);
+    		if (is_sign_auto.compareTo("YES") == 0)
+    			sign_auto.setChecked(true);
+    		else sign_auto.setChecked(false);
+    		if (keep_account.isChecked() == false
+    				|| username_string.compareTo("错误的参数") == 0)
+    			userid.setText("");
+    		else userid.setText(username_string);
+    		if (save_password.isChecked() == false
+    				|| password_string.compareTo("错误的参数") == 0)
+    			passwd.setText("");
+    		else passwd.setText(password_string);
+    		
+    		save_config();
+    		fis.close();
+    	}catch (Exception e){
+    		Log.e("Read conf", e.getMessage());
+    	}
+    }
+    
+    // 保存配置文件和用户名密码（新）
+    private void save_config(){
+    	try{
+      		String shadow_raw_string = "";
+      		if (free.isChecked())
+      			shadow_raw_string += "1-FREE=YES ";
+      		else
+      			shadow_raw_string += "1-FREE=NO ";
+      		if (keep_account.isChecked())
+      			shadow_raw_string += "2-KEEPACCOUNT=YES ";
+      		else
+      			shadow_raw_string += "2-KEEPACCOUNT=NO ";
+      		if (save_password.isChecked())
+      			shadow_raw_string += "3-SAVEPASSWORD=YES ";
+      		else
+      			shadow_raw_string += "3-SAVEPASSWORD=NO ";
+      		if (sign_auto.isChecked())
+      			shadow_raw_string += "4-SIGNAUTO=YES ";
+      		else
+      			shadow_raw_string += "4-SIGNAUTO=NO ";
+      		shadow_raw_string += "5-USERNAME="+userid.getText()+" ";
+      		shadow_raw_string += "6-PASSWD="+passwd.getText()+"   ";
+      		Log.i("Save conf", "USERNAME : "+userid.getText());
+      		Log.i("Save conf", "PASSWORD : "+passwd.getText());
+      		byte[] shadow_byte = encode(shadow_raw_string.getBytes(), key.getBytes());
+      		FileOutputStream out = new FileOutputStream(conf_file);
+      		out.write(shadow_byte);
+      		out.flush();
+      		out.close();
+      		Log.i("Save conf", "Save complete");
+    	}catch (Exception e){
+    		Log.e("Save conf", e.getMessage());
+    	}
+    }
+    
+    /*
     // 读取配置文件
     private void read_conf() {
     	try{
@@ -635,6 +684,7 @@ public class ipgw extends Activity {
     		Log.e("save shadow", e.getMessage());
     	}
     }
+    */
     
     // 加密
     public static byte[] encode(byte[] input, byte[] key) 
