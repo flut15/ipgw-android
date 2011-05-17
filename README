@@ -1,8 +1,51 @@
-PKU ipgw for android.
-1
+PKU ipgwclient for Android.
 
-With GPL Licence.
+************************************************************
+User Guide.
 
-Author : Xelatex
+Thanks for using and viewing the source code of ipgwclient of PKU for Android. This software is developed just for connecting out of the cerne via Peking University IP Gateway (https://its.pku.edu.cn). 
+
+If you would like to INSTALL the software on your Android os, you should:
+1. Send file "ipgw.apk" to your phone SD card via USB or Bluetooth, whatever.
+2. Click file "ipgw.apk" via file manager of Android.
+3. ipgwclient demands the Internet, SD card and WIFI support of Android, please click YES to continue.
+4. Wait for success of installation.
+
+When you fail to install and use, please check:
+1. If you have install the previous version, please uninstall it and try again.
+2. Please check the version of your Android operating system, Android version lower than 2.1 is not supported.
+3. Please check if your phone supports WIFI, which is the essential element of the software.
+4. Please check your SD card, a writable SD card is enssential.
+5. Please contact us via email yzt356@gmail.com or pkuccnet@gmail.com other than any of the reasons above.
+
+************************************************************
+Developer Guide.
+
+If you want to contribute to the developing of the software, please contact us via yzt356@gmail.com. Anyone who want to refine it is welcomed.
+
+A simple developer guide is as follows:
+1. The source code of this project is OPEN and could be used ANYWHERE. You can do anything within it, but we leave the responsibility of any disaster result because of your change.
+2. If you would like to publish a new version, please use the key file "ipgw_key" in root directory. Contact us for password and detailed usage.
+3. The developing environment is Eclipse Java EE for Web Developers, Version Helios Service Release 2, and the plugin of Android for Eclipse, the Project Build Target is Android 2.1-update1 with API level 7 (IMPORTANT INFOMATION). Please comfirm your developing environment before any change.
+4. Import the whole project into Eclipse with Android plugin, then edit it anyway.
+5. Please do not click "Project->Clean.." if you would like to commit to svn, because the action of "Project->Clean.." of Eclipse will destroy the directory tree of "gen", which will prevent you from commiting.
+6. Contact us for any details and questions.
+
+************************************************************
+Version History.
+
+0.9beta :
+	Release Data : 2011-5-17
+	Release Note : The first version of the Software, with functions of safe ssl connection and certification of cert chain, keep account and password with crypto encoding, hearbeat server certification.
+	Release For : Inner Test
+	Author : Xelatex
+	Author Email : yzt356@gmail.com
+
+************************************************************
+SVN information
+
 Owner : pkuccnet yzt356
+Project Wiki : 
+First Version Author : Xelatex (yzt356@gmail.com)
 Report Bug : pkuccnet@gmail.com yzt356@gmail.com
+
