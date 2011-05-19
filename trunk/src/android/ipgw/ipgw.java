@@ -117,8 +117,8 @@ public class ipgw extends Activity {
         nm = (NotificationManager)getSystemService(service);
         n = new Notification(R.drawable.icon, "北京大学校园网IP网关认证客户端(android)", System.currentTimeMillis());
         n.flags = Notification.FLAG_ONGOING_EVENT;
-        i = new Intent(ipgw.this, ipgw.class);
-        i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        i = this.getIntent();
+        i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         contentIntent = PendingIntent.getActivity(
         		ipgw.this, 
         		R.string.app_name,
