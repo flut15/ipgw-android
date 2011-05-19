@@ -5,8 +5,12 @@ import android.ipgw.R;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -56,7 +60,6 @@ public class ipgw extends Activity {
     private CheckBox save_password;
     private CheckBox sign_auto;
     private File conf_file;
-    private File shadow_file;
 	
     private String USER_ID = "";//用户名
     private String PASSWORD = "";//密码
@@ -71,6 +74,12 @@ public class ipgw extends Activity {
     
     boolean onConnect;
     
+    // 任务栏通知
+    NotificationManager nm;
+    Notification n;
+    String service = Context.NOTIFICATION_SERVICE;
+    Intent i;
+    PendingIntent contentIntent;
     
     /** Called when the activity is first created. */
     @Override
@@ -103,7 +112,25 @@ public class ipgw extends Activity {
         sign_auto.setOnCheckedChangeListener(listener_keep_account);
         
         conf_file = new File("/sdcard/ipgw.conf");
-        shadow_file = new File("/sdcard/ipgw.shadow");
+        
+        // 初始化状态栏通知
+        nm = (NotificationManager)getSystemService(service);
+        n = new Notification(R.drawable.icon, "北京大学校园网IP网关认证客户端(android)", System.currentTimeMillis());
+        n.flags = Notification.FLAG_ONGOING_EVENT;
+        i = new Intent(ipgw.this, ipgw.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        contentIntent = PendingIntent.getActivity(
+        		ipgw.this, 
+        		R.string.app_name,
+        		i, 
+        		PendingIntent.FLAG_UPDATE_CURRENT);
+        n.setLatestEventInfo(
+        		ipgw.this,
+        		"北京大学校园网IP网关认证客户端(android)",
+        		"当前连接状态：未连接",
+        		contentIntent);
+        nm.notify(R.string.app_name, n);
+        //nm.notify();
         
         // 载入配置文件和用户名密码
         try{
@@ -115,29 +142,6 @@ public class ipgw extends Activity {
         }catch (Exception e){
         	Log.e("read shadow", e.getMessage());
         }
-        	/*
-        // 载入配置文件和用户名密码
-        try{
-        	if (!shadow_file.exists()){
-        		shadow_file.createNewFile();
-        	}
-        	else
-        		read_shadow();
-        }catch (Exception e){
-        	//debug.setText(debug.getText() + e.getMessage());
-        	Log.e("read shadow", e.getMessage());
-        }
-        try{
-        	if (!conf_file.exists()){
-        		conf_file.createNewFile();
-        	}
-        	else
-        		read_conf();
-        }catch (Exception e){
-        	//debug.setText(debug.getText() + e.getMessage());
-        	Log.e("read conf", e.getMessage());
-        }
-        */
         
         // 自动连接
         if (sign_auto.isChecked() == true){
@@ -156,6 +160,7 @@ public class ipgw extends Activity {
     		save_config();
     	}
     	disconnect();
+    	nm.cancelAll();
     	super.onDestroy();
     }
     
@@ -333,6 +338,34 @@ public class ipgw extends Activity {
     private class myTimerTask extends TimerTask{
     	public void run() {
     		Log.i("heartbeat","TimerUp, send heartbeat.");
+			if (send_heartbeat() == 0){
+				Log.i("heartbeat", "success");
+				onConnect = true;
+	    		//设置状态栏状态
+	    		n.icon = R.raw.success;
+	            n.setLatestEventInfo(
+	            		ipgw.this,
+	            		"北京大学校园网IP网关认证客户端(android)",
+	            		"当前连接状态：已连接",
+	            		contentIntent);
+	            nm.notify(R.string.app_name, n);
+			}
+			else{
+				Log.i("heartbeat", "failed");
+				//status.setText("连接已断开，正在尝试重新连接...");
+				if (onConnect == false)
+					return;
+				onConnect = false;
+	    		//设置状态栏状态
+	    		n.icon = R.raw.exception;
+	            n.setLatestEventInfo(
+	            		ipgw.this,
+	            		"北京大学校园网IP网关认证客户端(android)",
+	            		"当前连接状态：网络异常",
+	            		contentIntent);
+	            nm.notify(R.string.app_name, n);
+			}
+			/*
     		if (onConnect == false){
     			Log.i("timerup","Reconnect");
     			connect();
@@ -344,8 +377,17 @@ public class ipgw extends Activity {
     				Log.i("heartbeat", "failed");
     				//status.setText("连接已断开，正在尝试重新连接...");
     				onConnect = false;
+    	    		//设置状态栏状态
+    	    		n.icon = R.drawable.icon;
+    	            n.setLatestEventInfo(
+    	            		ipgw.this,
+    	            		"北京大学校园网IP网关认证客户端(android)",
+    	            		"当前连接状态：网络异常",
+    	            		contentIntent);
+    	            nm.notify(R.string.app_name, n);
     			}
     		}
+    		*/
     	}
     }
     
@@ -441,21 +483,53 @@ public class ipgw extends Activity {
     				result += "账户余额："+balance+"元\n";
     				result += message;
     	    		onConnect = true;
+    	    		//设置状态栏状态
+    	    		n.icon = R.raw.success;
+    	            n.setLatestEventInfo(
+    	            		ipgw.this,
+    	            		"北京大学校园网IP网关认证客户端(android)",
+    	            		"当前连接状态：已连接",
+    	            		contentIntent);
+    	            nm.notify(R.string.app_name, n);
     			} else {
     				if (parse_param(params, "CONNECTIONS").compareTo("0") == 0)
     					result += "断开全部连接成功";
     				else result += "断开连接成功";
     	    		onConnect = false;
+    	    		//设置状态栏状态
+    	    		n.icon = R.raw.failed;
+    	            n.setLatestEventInfo(
+    	            		ipgw.this,
+    	            		"北京大学校园网IP网关认证客户端(android)",
+    	            		"当前连接状态：断开连接",
+    	            		contentIntent);
+    	            nm.notify(R.string.app_name, n);
     			}
     		}
     		else{
     			String reason = parse_param(params, "REASON");
     			result += "连接失败\n"+reason;
         		onConnect = false;
+	    		//设置状态栏状态
+	    		n.icon = R.raw.failed;
+	            n.setLatestEventInfo(
+	            		ipgw.this,
+	            		"北京大学校园网IP网关认证客户端(android)",
+	            		"当前连接状态：连接失败",
+	            		contentIntent);
+	            nm.notify(R.string.app_name, n);
     		}
     	}else{
     		result = "未知错误";
     		onConnect = false;
+    		//设置状态栏状态
+    		n.icon = R.raw.failed;
+            n.setLatestEventInfo(
+            		ipgw.this,
+            		"北京大学校园网IP网关认证客户端(android)",
+            		"当前连接状态：未知错误",
+            		contentIntent);
+            nm.notify(R.string.app_name, n);
     	}
     	return result;
     }
@@ -568,124 +642,6 @@ public class ipgw extends Activity {
     	}
     }
     
-    /*
-    // 读取配置文件
-    private void read_conf() {
-    	try{
-    		BufferedReader br = new BufferedReader(new FileReader(conf_file));
-    		String conf_string;
-    		conf_string = br.readLine();
-    		//debug.setText(debug.getText() + "conf:" + conf_string + "\n");
-    		if (conf_string.length() >= 4){
-    			if (conf_string.charAt(1) == '0'){
-    				userid.setText("");
-    				passwd.setText("");
-    				keep_account.setChecked(false);
-    				free.setChecked(true);
-    				global.setChecked(false);
-    				return;
-    			}
-    			else
-    				keep_account.setChecked(true);
-    			if (conf_string.charAt(0) == '0'){
-    				free.setChecked(true);
-    				global.setChecked(false);
-    			} else {
-    				free.setChecked(false);
-    				global.setChecked(true);
-    			}
-    			if (conf_string.charAt(2) == '0'){
-    				passwd.setText("");
-    				save_password.setChecked(false);
-    			}
-    			else
-    				save_password.setChecked(true);
-    			if (conf_string.charAt(3) == '0')
-    				sign_auto.setChecked(false);
-    			else
-    				sign_auto.setChecked(true);
-    		}
-    	}catch (Exception e){
-    		//debug.setText(debug.getText() +"\n"+ e.getMessage());
-    		Log.e("read conf internal", e.getMessage());
-    	}
-    }
-    
-    // 读取账户密码信息
-    private void read_shadow() {
-       	try{
-    		FileInputStream fis = new FileInputStream(shadow_file);
-    		byte[] shadow_byte_in = new byte[1024];
-    		byte[] shadow_byte;
-    		byte[] shadow_raw_byte;
-    		int len = fis.read(shadow_byte_in);
-    		shadow_byte = new byte[len];
-    		int i;
-    		for(i = 0; i < len; i ++)
-    			shadow_byte[i] = shadow_byte_in[i];
-    		
-    		shadow_raw_byte = decode(shadow_byte, key.getBytes());
-    		
-    		String shadow_string = new String(shadow_raw_byte);
-    		int pos = shadow_string.indexOf("@#$");
-    		String u_string = shadow_string.substring(0,pos);
-    		String p_string = shadow_string.substring(pos+3);
-    		userid.setText(u_string);
-    		passwd.setText(p_string);
-    		
-    		//debug.setText(debug.getText() + new String(shadow_raw_byte) + "\n");
-    	}catch (Exception e){
-    		//debug.setText(debug.getText() +"\n"+ e.getMessage());
-    		Log.e("read shadow internal", e.getMessage());
-    	}
-    }
-    
-    // 保存配置文件
-    private void save_conf() {
-      	try{
-      		String conf_string = "";
-      		if (free.isChecked() == true)
-      			conf_string += "0";
-      		else conf_string += "1";
-      		if (keep_account.isChecked() == true)
-      			conf_string += "1";
-      		else conf_string += "0";
-      		if (save_password.isChecked() == true)
-      			conf_string += "1";
-      		else conf_string += "0";
-      		if (sign_auto.isChecked() == true)
-      			conf_string += "1";
-      		else conf_string += "0";
-      		
-      		FileOutputStream out = new FileOutputStream(conf_file);
-      		out.write(conf_string.getBytes("UTF-8"));
-      		out.flush();
-      		out.close();
-    	}catch (Exception e){
-    		//debug.setText(debug.getText() +"\n" + e.getMessage());
-    		Log.e("save conf", e.getMessage());
-    	}
-    }
-    
-    // 保存账户密码信息
-    private void save_shadow() {
-      	try{
-      		String shadow_raw_string;
-      		shadow_raw_string = String.valueOf(userid.getText()) + "@#$" + String.valueOf(passwd.getText());
-      		byte[] shadow_byte = encode(shadow_raw_string.getBytes(), key.getBytes());
-      		//debug.setText(debug.getText() + new String(shadow_byte) + "\n");
-      		
-      		FileOutputStream out = new FileOutputStream(shadow_file);
-      		out.write(shadow_byte);
-      		out.flush();
-      		out.close();
-    	}catch (Exception e){
-    		//debug.setText(debug.getText() +"\n" + e.getMessage());
-    		Log.e("save shadow", e.getMessage());
-    	}
-    }
-    */
-    
     // 加密
     public static byte[] encode(byte[] input, byte[] key) 
     	throws Exception 
@@ -739,21 +695,6 @@ public class ipgw extends Activity {
     				chain[i].checkValidity();
     				chain[i].verify(chain[i+1].getPublicKey());
     			}
-    			
-    			/*
-    			X509Certificate cert_host_1 = chain[0];
-    			X509Certificate cert_host_2 = chain[1];
-    			CertificateFactory cf = CertificateFactory.getInstance("X.509");
-    			//FileInputStream fis = new FileInputStream("ca.cer");
-    			InputStream is = getClass().getResourceAsStream("/res/raw/ca.cer");
-    			X509Certificate cert_local_1 = (X509Certificate)cf.generateCertificate(is);
-    			X509Certificate cert_local_2 = (X509Certificate)cf.generateCertificate(is);
-    			X509Certificate cert_local_3 = (X509Certificate)cf.generateCertificate(is);
-    			if(cert_host_1.equals(cert_local_1) == false)
-    				throw new CertificateException("证书验证失败");
-    			cert_host_1.checkValidity();
-    			*/
-    			
     		}
     		catch (CertificateExpiredException e){
     			Log.e("Certificate expire", e.getMessage());
