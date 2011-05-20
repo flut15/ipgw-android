@@ -69,9 +69,11 @@ public class ipgw extends Activity {
     private Timer timer;
     private myTimerTask mytask;
     static final int HEART_BEAT_INTERVAL = 5000;
+    static final int LOSE_CONN_INTERVAL = 20000;
     static final String[] HEARTBEAT_SERVER = {"162.105.129.27","202.112.7.13"};
     static final int[] HEARTBEAT_SERVER_PORT = {7777,7777};
     
+    int loseConnCount;
     boolean onConnect;
     
     // 任务栏通知
@@ -112,6 +114,7 @@ public class ipgw extends Activity {
         sign_auto.setOnCheckedChangeListener(listener_keep_account);
         
         conf_file = new File("/sdcard/ipgw.conf");
+        loseConnCount = 0;
         
         // 初始化状态栏通知
         nm = (NotificationManager)getSystemService(service);
@@ -349,12 +352,17 @@ public class ipgw extends Activity {
 	            		"当前连接状态：已连接",
 	            		contentIntent);
 	            nm.notify(R.string.app_name, n);
+	            loseConnCount = 0;
 			}
 			else{
 				Log.i("heartbeat", "failed");
 				//status.setText("连接已断开，正在尝试重新连接...");
 				if (onConnect == false)
 					return;
+				loseConnCount ++;
+				if (loseConnCount * ipgw.HEART_BEAT_INTERVAL <= ipgw.LOSE_CONN_INTERVAL){
+					return;
+				}
 				onConnect = false;
 	    		//设置状态栏状态
 	    		n.icon = R.raw.exception;
@@ -365,29 +373,6 @@ public class ipgw extends Activity {
 	            		contentIntent);
 	            nm.notify(R.string.app_name, n);
 			}
-			/*
-    		if (onConnect == false){
-    			Log.i("timerup","Reconnect");
-    			connect();
-    		}
-    		else{
-    			if (send_heartbeat() == 0)
-    				Log.i("heartbeat", "success");
-    			else{
-    				Log.i("heartbeat", "failed");
-    				//status.setText("连接已断开，正在尝试重新连接...");
-    				onConnect = false;
-    	    		//设置状态栏状态
-    	    		n.icon = R.drawable.icon;
-    	            n.setLatestEventInfo(
-    	            		ipgw.this,
-    	            		"北京大学校园网IP网关认证客户端(android)",
-    	            		"当前连接状态：网络异常",
-    	            		contentIntent);
-    	            nm.notify(R.string.app_name, n);
-    			}
-    		}
-    		*/
     	}
     }
     
