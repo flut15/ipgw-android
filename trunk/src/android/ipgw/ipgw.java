@@ -258,6 +258,19 @@ public class ipgw extends Activity {
     	}
     };
     
+    private boolean isWeakPassword(String username, String password){
+    	if(password == null)return false;
+        else if(password.equals(username)) return true;
+    	else if(password.length() < 6) return true;
+    	else{
+    		char ch = password.charAt(0);
+    		int i;
+    		for(i=0;i<password.length();i++)if(ch!=password.charAt(0))break;
+    		if(i==password.length())return true;
+    	}
+    	return false;
+  	}
+    
     // 退出确认对话框
     private void exit_dialog() {
     	AlertDialog.Builder builder = new Builder(ipgw.this);
@@ -277,6 +290,8 @@ public class ipgw extends Activity {
     	builder.create().show();
     }
     
+    static final private String WEAKPASSWORD_PROMPT = "由于部分用户密码简单，近期经常发生黑客盗用北大邮箱发送大量垃圾邮件的情况，使得广大师生无法正常收发邮件，影响工作学习，而且个人信息也有泄露的危险。鉴于您的登录密码过于简单，请您尽快登录http://its.pku.edu.cn修改！";
+    
     // 连接
     private String connect() {
     	String result="";
@@ -291,6 +306,26 @@ public class ipgw extends Activity {
     		result = "连接失败，网络异常或软件已损坏\n" + e.getMessage();
     		Log.e("connect", e.getMessage());
     		onConnect = false;
+    	}
+    	//test weak password
+    	if(onConnect == true){
+    		if(isWeakPassword(USER_ID,PASSWORD))
+    		{
+    			AlertDialog.Builder ab = new AlertDialog.Builder(this);
+    			ab.setMessage(WEAKPASSWORD_PROMPT);
+    			ab.setCancelable(false);
+    			ab.setPositiveButton("确定", new DialogInterface.OnClickListener(){
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+					}
+				});
+    			AlertDialog ad = ab.create();
+    			ad.show();
+//    			Toast t = Toast.makeText(this, WEAKPASSWORD_PROMPT, Toast.LENGTH_LONG);
+//    			t.setDuration(Toast.LENGTH_LONG);
+//    			t.show();
+    		}
     	}
     	
     	if (onConnect == true){
@@ -313,6 +348,11 @@ public class ipgw extends Activity {
     		result = parse_result(result);
     	} catch (Exception e) {
     		result = "断开所有连接失败，网络异常或软件已损坏\n" + e.getMessage();
+    	}
+    	//test weak password
+    	if(onConnect == false){
+    		if(this.isWeakPassword(USER_ID, PASSWORD))
+    			Toast.makeText(this, WEAKPASSWORD_PROMPT, Toast.LENGTH_LONG);
     	}
     	
 		if (timer != null)
@@ -348,7 +388,7 @@ public class ipgw extends Activity {
 	    		n.icon = R.raw.success;
 	            n.setLatestEventInfo(
 	            		ipgw.this,
-	            		"北京大学校园网IP网关认证客户端(android)",
+	            		"北京大学校园网IP网关认证客户端(Android)",
 	            		"当前连接状态：已连接",
 	            		contentIntent);
 	            nm.notify(R.string.app_name, n);
@@ -402,7 +442,7 @@ public class ipgw extends Activity {
     	}
     	return 1;
     }
-    
+
     // https请求
     private String https_request() throws Exception{
     	
@@ -443,6 +483,8 @@ public class ipgw extends Activity {
     			if (parse_param(params, "STATE").compareTo("connected") == 0){
     				String username = parse_param(params, "USERNAME");
     				String fixrate = parse_param(params, "FIXRATE");
+    				String frdesccn = parse_param(params, "FR_DESC_CN");
+    				//String frdescen = parse_param(params, "FR_DESC_EN");
     				String scope = parse_param(params, "SCOPE");
     				String deficit = parse_param(params, "DEFICIT");
     				String connections = parse_param(params, "CONNECTIONS");
@@ -459,7 +501,7 @@ public class ipgw extends Activity {
     				if (fixrate.compareTo("NO") == 0)
     					result += "包月状态：未包月\n";
     				else
-    					result += "包月状态：已包月\n";
+    					result += "包月状态："+frdesccn+"\n";
     				if (deficit.compareTo("NO") == 0)
     					result += "欠费断网：是\n";
     				else
