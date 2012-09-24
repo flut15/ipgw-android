@@ -258,17 +258,43 @@ public class ipgw extends Activity {
     	}
     };
     
-    private boolean isWeakPassword(String username, String password){
-    	if(password == null)return false;
-        else if(password.equals(username)) return true;
-    	else if(password.length() < 6) return true;
+    private void isWeakPassword(String username, String password){
+    	boolean wpFlag = false;
+    	if(password == null){
+    		Log.i("WeakPassword", "password==null");
+    		wpFlag=true;
+    	}
+        else if(password.equals(username)){
+    		Log.i("WeakPassword", "password==username");
+        	wpFlag=true;
+        }
+    	else if(password.length() < 6){
+    		Log.i("WeakPassword", "password.length() < 6");
+    		wpFlag=true;
+    	}
     	else{
     		char ch = password.charAt(0);
     		int i;
-    		for(i=0;i<password.length();i++)if(ch!=password.charAt(0))break;
-    		if(i==password.length())return true;
+    		for(i=1;i<password.length();i++)if(ch!=password.charAt(i))break;
+    		if(i==password.length()){
+        		Log.i("WeakPassword", "password==xx...x");
+    			wpFlag=true;
+    		}
     	}
-    	return false;
+    	
+    	if(wpFlag){
+			AlertDialog.Builder ab = new AlertDialog.Builder(this);
+			ab.setMessage(WEAKPASSWORD_PROMPT);
+			ab.setCancelable(false);
+			ab.setPositiveButton("确定", new DialogInterface.OnClickListener(){
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					dialog.dismiss();
+				}
+			});
+			AlertDialog ad = ab.create();
+			ad.show();
+    	}
   	}
     
     // 退出确认对话框
@@ -309,23 +335,7 @@ public class ipgw extends Activity {
     	}
     	//test weak password
     	if(onConnect == true){
-    		if(isWeakPassword(USER_ID,PASSWORD))
-    		{
-    			AlertDialog.Builder ab = new AlertDialog.Builder(this);
-    			ab.setMessage(WEAKPASSWORD_PROMPT);
-    			ab.setCancelable(false);
-    			ab.setPositiveButton("确定", new DialogInterface.OnClickListener(){
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						dialog.dismiss();
-					}
-				});
-    			AlertDialog ad = ab.create();
-    			ad.show();
-//    			Toast t = Toast.makeText(this, WEAKPASSWORD_PROMPT, Toast.LENGTH_LONG);
-//    			t.setDuration(Toast.LENGTH_LONG);
-//    			t.show();
-    		}
+    		isWeakPassword(USER_ID,PASSWORD);
     	}
     	
     	if (onConnect == true){
@@ -350,10 +360,8 @@ public class ipgw extends Activity {
     		result = "断开所有连接失败，网络异常或软件已损坏\n" + e.getMessage();
     	}
     	//test weak password
-    	if(onConnect == false){
-    		if(this.isWeakPassword(USER_ID, PASSWORD))
-    			Toast.makeText(this, WEAKPASSWORD_PROMPT, Toast.LENGTH_LONG);
-    	}
+    	if(onConnect == false)
+    		this.isWeakPassword(USER_ID, PASSWORD);
     	
 		if (timer != null)
 			timer.cancel();
@@ -455,7 +463,7 @@ public class ipgw extends Activity {
     	HttpsURLConnection conn = (HttpsURLConnection)new URL(url).openConnection();
     	conn.setDoOutput(true);
     	conn.setDoInput(true);
-    	conn.setReadTimeout(5000);
+    	conn.setReadTimeout(10000);
     	conn.connect();
     	
     	BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "GBK"));
@@ -732,7 +740,7 @@ public class ipgw extends Activity {
     			throw new CertificateException("证书失效-"+e.getMessage());
     		}
     		catch (CertificateException e){
-    			Log.e("Certificate endoce", e.getMessage());
+    			Log.e("Certificate encode", e.getMessage());
     			throw new CertificateException("证书编码错误-"+e.getMessage());
     		}
     		catch (NoSuchAlgorithmException e){
